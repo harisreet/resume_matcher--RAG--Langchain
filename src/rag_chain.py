@@ -1,13 +1,13 @@
 from langchain_core.prompts import ChatPromptTemplate
 
 def build_rag_chain():
+    return ChatPromptTemplate.from_template("""
+You are a strict resume screening assistant.
 
-    prompt = ChatPromptTemplate.from_template("""
-You are a resume screening assistant.
-
-Answer ONLY using the provided context.
-
-If the resume filename is available in the metadata, mention it.
+RULES:
+- Answer ONLY from provided context
+- If not found, say "Not found in resumes"
+- Mention resume filename if available
 
 Context:
 {context}
@@ -15,5 +15,3 @@ Context:
 Question:
 {question}
 """)
-
-    return prompt
