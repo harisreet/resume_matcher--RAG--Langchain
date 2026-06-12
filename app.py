@@ -31,20 +31,27 @@ prompt = build_rag_chain()
 # -----------------------
 # QUERY
 # -----------------------
-question = "Who has Linux experience?"
-
+job_description = """
+We are looking for a Software Engineer with experience in:
+- Linux
+- C++
+- Operating Systems
+- Embedded Systems knowledge is a plus
+"""
+query = job_description
 # 8. Retrieve (MMR)
-docs = retriever.invoke(question)
+docs = retriever.invoke(query)
 
 # -----------------------
 # 9. RERANK (🔥 NEW STEP)
 # -----------------------
-docs = rerank(question, docs)
+docs = rerank(query, docs)
 
 # -----------------------
 # 10. DEDUPLICATION
 # -----------------------
 unique_docs = {}
+
 for doc in docs:
     source = doc.metadata.get("source", "unknown")
     if source not in unique_docs:
@@ -64,7 +71,7 @@ for i, doc in enumerate(docs):
 # -----------------------
 # CONTEXT BUILDING
 # -----------------------
-context = "\n\n".join(
+context = "\n\n====================\n\n".join(
     f"""
 Resume File: {doc.metadata.get('source', 'unknown')}
 Content:
@@ -72,16 +79,15 @@ Content:
 """.strip()
     for doc in docs
 )
-
 # -----------------------
 # LLM CALL
 # -----------------------
 messages = prompt.invoke({
     "context": context,
-    "question": question
+    "question": job_description
 })
 
 response = llm.invoke(messages)
 
-print("\n--- FINAL ANSWER ---\n")
+print("\n--- FINAL ATS RANKING ---\n")
 print(response.content)
