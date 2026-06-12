@@ -1,16 +1,14 @@
 from src.resume_loader import load_resumes
 from src.text_splitter import split_documents
+from src.embeddings import get_embedding_model
 
-folder_path = "data/resumes"
-
-documents = load_resumes(folder_path)
+documents = load_resumes("data/resumes")
 
 chunks = split_documents(documents)
 
-print(f"Total Documents: {len(documents)}")
-print(f"Total Chunks: {len(chunks)}\n")
+model = get_embedding_model()
 
-for i, chunk in enumerate(chunks[:5], start=1):
-    print(f"Chunk {i}")
-    print(chunk.page_content[:300])
-    print("-" * 50)
+vector = model.encode(chunks[0].page_content)
+
+print("Vector Dimension:", len(vector))
+print(vector[:10])
