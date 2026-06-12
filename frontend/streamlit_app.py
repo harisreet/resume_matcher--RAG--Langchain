@@ -548,7 +548,11 @@ with tab_board:
                 return "background-color: rgba(246,224,94,0.12); color: #f6e05e; font-weight: bold;"
             return "background-color: rgba(252,129,129,0.12); color: #fc8181; font-weight: bold;"
 
-        styled = df.style.applymap(highlight_score, subset=["Match Score (%)"])
+        # Use map for pandas 2.1.0+ and fallback to applymap for older versions
+        if hasattr(df.style, "map"):
+            styled = df.style.map(highlight_score, subset=["Match Score (%)"])
+        else:
+            styled = df.style.applymap(highlight_score, subset=["Match Score (%)"])
         st.dataframe(styled, use_container_width=True, hide_index=True)
 
         # Download CSV
