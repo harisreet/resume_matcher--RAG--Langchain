@@ -1,5 +1,10 @@
-from sentence_transformers import SentenceTransformer
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 
 def get_embedding_model():
-    return SentenceTransformer("all-MiniLM-L6-v2")
+
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
+
+    return embeddings
