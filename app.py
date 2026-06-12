@@ -5,17 +5,18 @@ from src.vector_store import create_vector_store
 from src.retriever import get_retriever
 from src.llm import get_llm
 from src.rag_chain import build_rag_chain
+from src.reranker import rerank   # 🔥 NEW
 
-# 1. Load resumes
+# 1. Load data
 documents = load_resumes("data/resumes")
 
-# 2. Split into chunks
+# 2. Split
 chunks = split_documents(documents)
 
 # 3. Embeddings
 embedding_model = get_embedding_model()
 
-# 4. Vector store
+# 4. Vector DB
 vector_store = create_vector_store(chunks, embedding_model)
 
 # 5. Retriever (MMR)
@@ -27,17 +28,22 @@ llm = get_llm()
 # 7. Prompt
 prompt = build_rag_chain()
 
-# ----------------------------
+# -----------------------
 # QUERY
-# ----------------------------
+# -----------------------
 question = "Who has Linux experience?"
 
-# 8. Retrieve docs
+# 8. Retrieve (MMR)
 docs = retriever.invoke(question)
 
-# ----------------------------
-# STEP: DEDUPLICATION (IMPORTANT FIX)
-# ----------------------------
+# -----------------------
+# 9. RERANK (🔥 NEW STEP)
+# -----------------------
+docs = rerank(question, docs)
+
+# -----------------------
+# 10. DEDUPLICATION
+# -----------------------
 unique_docs = {}
 for doc in docs:
     source = doc.metadata.get("source", "unknown")
@@ -46,18 +52,18 @@ for doc in docs:
 
 docs = list(unique_docs.values())
 
-# ----------------------------
-# DEBUG: show retrieved resumes
-# ----------------------------
-print("\n--- UNIQUE RETRIEVED RESUMES ---")
+# -----------------------
+# DEBUG OUTPUT
+# -----------------------
+print("\n--- RERANKED RESUMES ---")
 
 for i, doc in enumerate(docs):
     print(f"\n[{i+1}] {doc.metadata.get('source')}")
     print(doc.page_content[:250])
 
-# ----------------------------
-# BUILD CONTEXT
-# ----------------------------
+# -----------------------
+# CONTEXT BUILDING
+# -----------------------
 context = "\n\n".join(
     f"""
 Resume File: {doc.metadata.get('source', 'unknown')}
@@ -67,9 +73,9 @@ Content:
     for doc in docs
 )
 
-# ----------------------------
-# LLM INVOKE
-# ----------------------------
+# -----------------------
+# LLM CALL
+# -----------------------
 messages = prompt.invoke({
     "context": context,
     "question": question
