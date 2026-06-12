@@ -73,18 +73,6 @@ To ensure maximum match accuracy and prevent model bias, our ranking pipeline us
 
 ---
 
-## 📸 Screenshots
-
-### Dashboard
-![Dashboard](screenshots/dashboard.png)
-
-### Candidate Ranking
-![Ranking](screenshots/ranking.png)
-
-### AI Resume Q&A
-![QA](screenshots/qa.png)
-
----
 
 ## 📂 Project Structure
 
