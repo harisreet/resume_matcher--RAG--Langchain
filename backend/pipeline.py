@@ -121,6 +121,19 @@ def _get_llm() -> ChatGoogleGenerativeAI:
     return _llm
 
 
+def _get_vector_store() -> Optional[Chroma]:
+    embeddings = _get_embedding_model()
+    if not os.path.exists(CHROMA_DIR) or not os.listdir(CHROMA_DIR):
+        docs = _load_resumes(RESUMES_DIR)
+        if not docs:
+            return None
+        return _build_vector_store(docs)
+    return Chroma(
+        persist_directory=CHROMA_DIR,
+        embedding_function=embeddings
+    )
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────────────────────────────────────
@@ -253,26 +266,45 @@ def run_match(job_description: str, top_k: int = 5) -> list:
 
 def run_qa(question: str, shortlisted_files: List[str]) -> dict:
     """
-    Answer a question about specific shortlisted candidates.
-    Returns dict with 'answer' and 'sources'.
+    Answer a question about specific shortlisted candidates by retrieving
+    relevant chunks from ChromaDB filtered by candidate source filenames.
     """
     RESUMES_DIR.mkdir(parents=True, exist_ok=True)
-    all_docs = _load_resumes(RESUMES_DIR)
-    # Filter to only shortlisted files
-    docs = [d for d in all_docs if d.metadata.get("source") in shortlisted_files]
-
-    if not docs:
+    
+    vector_store = _get_vector_store()
+    if not vector_store:
         return {
-            "answer": "No documents found for the shortlisted candidates.",
+            "answer": "No resumes have been uploaded/indexed yet.",
             "sources": [],
         }
 
-    context = _build_context(docs)
+    # Filter ChromaDB to only search within the shortlisted files
+    if len(shortlisted_files) == 1:
+        filter_dict = {"source": shortlisted_files[0]}
+    else:
+        filter_dict = {"source": {"$in": shortlisted_files}}
+
+    # Retrieve relevant chunks from ChromaDB using metadata filter
+    # k can be set to 10 to ensure we get plenty of context from the selected resumes
+    retrieved_docs = vector_store.similarity_search(
+        question,
+        k=10,
+        filter=filter_dict
+    )
+
+    if not retrieved_docs:
+        return {
+            "answer": "No relevant chunks found in the vector store for the selected candidates.",
+            "sources": [],
+        }
+
+    # Build context from the retrieved chunks
+    context = _build_context(retrieved_docs)
     llm = _get_llm()
     messages = QA_PROMPT.invoke({"context": context, "question": question})
     response = llm.invoke(messages)
 
     return {
         "answer": response.content,
-        "sources": list({d.metadata.get("source") for d in docs}),
+        "sources": list({d.metadata.get("source") for d in retrieved_docs}),
     }
